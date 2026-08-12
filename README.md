@@ -36,12 +36,16 @@ git remote add origin https://github.com/PietOff/Horse-game.git
 git push -u origin main
 ```
 
-Then turn on hosting: on GitHub go to **Settings → Pages → Build and deployment**,
-set **Source = Deploy from a branch**, **Branch = main / (root)**, Save.
-Your game is live at **https://pietoff.github.io/Horse-game/** within a minute.
+Then turn on hosting: on GitHub go to **Settings → Pages → Build and deployment**
+and set **Source = GitHub Actions**. That's it — the included workflow
+(`.github/workflows/deploy.yml`) publishes the site automatically.
 
-**Every future change** is just: edit → `git commit` → `git push`, and the live
-site updates automatically. (Refresh the tablet to pick up the new version.)
+Your game is live at **https://pietoff.github.io/Horse-game/** within a minute.
+Watch it build under the repo's **Actions** tab.
+
+**Every future change** is just: edit → `git commit` → `git push`. The Action
+rebuilds and redeploys on its own — no other steps. (Refresh the tablet to pick
+up the new version.)
 
 ---
 

@@ -3,13 +3,18 @@ rules_version = '2';
 // Apeiron Derby — leaderboard security rules.
 //
 // The `derbyScores` collection is a public arcade leaderboard:
-//   - anyone may READ it (so every tablet sees the live board),
+//   - anyone may READ it (every tablet sees the live board),
 //   - anyone may CREATE a score, but only with a valid, minimal shape,
-//   - no one may edit or delete from the client (tidy up in the console).
+//   - anyone may DELETE a score (so the in-app Admin controls can remove
+//     individual test times / clear the board). This is a fun board, not
+//     sensitive data — the PIN in the app just hides the buttons.
+//   - no one may EDIT an existing score.
 //
-// If you are REUSING the Apeiron project, copy ONLY the `match /derbyScores/...`
-// block below into that project's existing firestore.rules (do not replace the
-// whole file), then run:  firebase deploy --only firestore:rules
+// IMPORTANT — reusing the Apeiron project:
+// Copy ONLY the `match /derbyScores/... { }` block below into that project's
+// existing firestore.rules (do NOT replace the whole file, or you'll wipe the
+// app's own rules), then deploy:  firebase deploy --only firestore:rules
+// (or paste in Firebase console → Firestore Database → Rules → Publish).
 
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -25,7 +30,8 @@ service cloud.firestore {
         request.resource.data.ms >= 0 &&
         request.resource.data.t is number &&
         request.resource.data.createdAt is number;
-      allow update, delete: if false;
+      allow delete: if true;
+      allow update: if false;
     }
 
   }

@@ -87,9 +87,7 @@
   .btn:active{transform:translateY(2px) scale(.99);}
   .btn.go{background:linear-gradient(180deg,var(--olive2),var(--olive)); color:#fff; box-shadow:0 10px 24px rgba(94,107,73,.45); min-width:min(560px,86vw);}
   .btn.stop{background:linear-gradient(180deg,#d85a40,var(--rust)); color:#fff; box-shadow:0 10px 26px rgba(192,73,47,.5); min-width:min(560px,86vw);}
-  .btn.ghost{background:transparent; color:var(--cream); border:2px solid rgba(227,218,201,.4); padding:12px 20px; font-size:16px; border-radius:12px;}
   .hint{color:var(--olive2); font-size:14px; font-weight:600; min-height:18px; text-align:center;}
-  .row{display:flex; gap:12px; align-items:center; flex-wrap:wrap; justify-content:center;}
   .toggle{display:flex; align-items:center; gap:8px; color:var(--cream); font-size:14px; font-weight:600;}
 
   .result{background:rgba(255,255,255,.06); border:1px solid rgba(227,218,201,.22); border-radius:18px; padding:16px 20px; text-align:center; display:none;}
@@ -106,21 +104,29 @@
   .namerow button{border-radius:10px;border:none;background:var(--gold);color:#3a2f14;font-weight:800;padding:10px 16px;font-size:15px;cursor:pointer;}
 
   .board{background:rgba(0,0,0,.18); border:1px solid rgba(227,218,201,.15); border-radius:16px; padding:14px 18px;}
-  .board h2{font-family:Georgia,serif; margin:0 0 8px; font-size:20px; color:var(--gold); display:flex; align-items:center; gap:8px;}
+  .board h2{font-family:Georgia,serif; margin:0 0 10px; font-size:20px; color:var(--gold); display:flex; align-items:center; gap:8px;}
   .board .status{font-family:-apple-system,sans-serif; font-size:11px; font-weight:700; letter-spacing:.08em; padding:2px 8px; border-radius:999px; text-transform:uppercase;}
   .board .status.live{background:rgba(94,107,73,.35); color:#dfe6d4; border:1px solid rgba(126,140,107,.6);}
   .board .status.local{background:rgba(0,0,0,.25); color:var(--olive2); border:1px solid rgba(227,218,201,.2);}
+  .boardctl{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px; flex-wrap:wrap;}
+  .seg{display:inline-flex; background:rgba(0,0,0,.25); border:1px solid rgba(227,218,201,.2); border-radius:10px; overflow:hidden;}
+  .seg button{background:transparent; color:var(--olive2); border:none; padding:7px 14px; font-size:13px; font-weight:700; cursor:pointer;}
+  .seg button.on{background:var(--olive); color:#fff;}
+  .board-actions{display:flex; gap:8px; align-items:center;}
+  .admin-link{background:transparent; border:1px solid rgba(227,218,201,.25); color:var(--cream); border-radius:8px; padding:7px 12px; font-size:12px; font-weight:700; cursor:pointer;}
+  .clearall{display:none; background:rgba(192,73,47,.15); color:#e8a08f; border:1px solid rgba(192,73,47,.5); border-radius:8px; padding:7px 12px; font-size:12px; font-weight:700; cursor:pointer;}
   .board ol{margin:0; padding:0 6px 0 0; list-style:none; display:grid; gap:6px;
     max-height:clamp(160px,32vh,320px); overflow-y:auto; scrollbar-width:thin; scrollbar-color:rgba(201,162,75,.6) transparent;}
   .board ol::-webkit-scrollbar{width:8px;}
   .board ol::-webkit-scrollbar-thumb{background:rgba(201,162,75,.6); border-radius:8px;}
   .board ol::-webkit-scrollbar-track{background:transparent;}
-  .board li{display:grid; grid-template-columns:26px 1fr auto; align-items:center; gap:10px; font-size:16px;
+  .board li{display:grid; grid-template-columns:26px 1fr auto auto; align-items:center; gap:10px; font-size:16px;
     padding:6px 10px; border-radius:10px; background:rgba(255,255,255,.04);}
   .board li.top{background:linear-gradient(90deg,rgba(201,162,75,.28),rgba(201,162,75,.05)); border:1px solid rgba(201,162,75,.4);}
   .board .rank{font-weight:800; color:var(--olive2); text-align:center;}
   .board .who{font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
   .board .sc{font-variant-numeric:tabular-nums; font-weight:700; color:var(--cream);}
+  .board .del{background:rgba(192,73,47,.9); color:#fff; border:none; border-radius:6px; width:24px; height:24px; font-size:13px; line-height:1; cursor:pointer; padding:0;}
   .empty{color:var(--olive2); font-size:14px;}
   footer{color:rgba(227,218,201,.4); font-size:12px; text-align:center; padding-bottom:6px;}
   .confetti{position:fixed; inset:0; pointer-events:none; z-index:50; overflow:hidden;}
@@ -170,14 +176,25 @@
         <button id="saveScore">Add to leaderboard</button>
       </div>
     </div>
-    <div class="row">
-      <label class="toggle"><input type="checkbox" id="easyMode" /> Easy mode (show live clock)</label>
-      <button class="btn ghost" id="clearBoard">Clear leaderboard</button>
-    </div>
+    <label class="toggle"><input type="checkbox" id="easyMode" /> Easy mode (show live clock)</label>
   </div>
 
   <div class="board">
     <h2>🏆 Today's Leaderboard <span class="status local" id="boardStatus">Local</span></h2>
+    <div class="boardctl">
+      <div class="seg" id="viewSeg">
+        <button data-view="today" class="on">Today</button>
+        <button data-view="all">All-time</button>
+      </div>
+      <div class="board-actions">
+        <div class="seg" id="modeSeg">
+          <button data-mode="local" class="on">Local</button>
+          <button data-mode="cloud">Cloud</button>
+        </div>
+        <button class="clearall" id="clearAllBtn">Clear all</button>
+        <button class="admin-link" id="adminBtn" title="Admin">🔒</button>
+      </div>
+    </div>
     <ol id="boardList"><li class="empty" style="background:none">No riders yet — be the first!</li></ol>
   </div>
 
@@ -185,62 +202,98 @@
 </div>
 <div class="confetti" id="confetti"></div>
 
-<!-- Firebase (compat) — only used if config.js has a real project. Safe to leave in even offline. -->
+<!-- Firebase (compat) — only used in Cloud mode when config.js is filled in. -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
 
 <script>
 /* ------------------------------------------------------------------ *
- * Leaderboard backend: shared live board via Firebase Firestore when
- * config.js is filled in; otherwise falls back to this browser's
- * localStorage so the game always works, even offline.
+ * Leaderboard backend. Two modes, switchable in the UI:
+ *   - local: this tablet's own board (localStorage), works offline.
+ *   - cloud: one shared, live board across every device (Firestore).
+ * Cloud entries carry their Firestore doc id so admins can delete
+ * specific times. The chosen mode is remembered on the device.
  * ------------------------------------------------------------------ */
 const LB = (function(){
   const KEY='apeiron_derby_scores_v1';
+  const MODE_KEY='apeiron_derby_mode';
   const cfg = window.APEIRON_DERBY_CONFIG || {};
-  let mode='local', col=null, onChange=function(){};
+  let mode = localStorage.getItem(MODE_KEY) || 'local';
+  let cloudReady=false, col=null, unsub=null, onChange=function(){};
+
+  const hasCloud = ()=> !!(cfg && cfg.apiKey && !String(cfg.apiKey).includes('PASTE') && window.firebase);
+  function ensureFirebase(){
+    if(cloudReady) return true;
+    if(!hasCloud()) return false;
+    try{
+      if(!firebase.apps || !firebase.apps.length) firebase.initializeApp(cfg);
+      col = firebase.firestore().collection('derbyScores');
+      cloudReady=true; return true;
+    }catch(e){ console.warn('firebase init:', e.message); return false; }
+  }
   const local = ()=>{ try{ return JSON.parse(localStorage.getItem(KEY)||'[]'); }catch(e){ return []; } };
   const saveLocal = (s)=>{ try{ localStorage.setItem(KEY, JSON.stringify(s)); }catch(e){} };
+  const withLocalIds = (s)=> s.slice().sort((a,b)=>a.ms-b.ms).map((r,i)=>({id:'l'+i, name:r.name, ms:r.ms, t:r.t, createdAt:r.createdAt}));
 
-  function init(cb){
-    onChange = cb;
-    const usable = cfg && cfg.apiKey && !String(cfg.apiKey).includes('PASTE') && window.firebase;
-    if(usable){
-      try{
-        firebase.initializeApp(cfg);
-        col = firebase.firestore().collection('derbyScores');
-        col.orderBy('ms','asc').limit(100).onSnapshot(
-          snap => { mode='cloud'; setStatus('cloud'); onChange(snap.docs.map(d=>d.data())); },
-          err  => { console.warn('Cloud board unavailable, using local:', err.message); mode='local'; setStatus('local'); onChange(local()); }
-        );
-        return;
-      }catch(e){ console.warn('Firebase init failed, using local:', e.message); }
+  function start(cb){ onChange=cb; apply(); }
+  function apply(){
+    if(unsub){ unsub(); unsub=null; }
+    if(mode==='cloud' && ensureFirebase()){
+      setStatus('cloud');
+      unsub = col.orderBy('ms','asc').limit(200).onSnapshot(
+        snap => onChange(snap.docs.map(d=>Object.assign({id:d.id}, d.data()))),
+        err  => { console.warn('cloud board:', err.message); setStatus('cloud-err'); onChange([]); }
+      );
+    } else {
+      if(mode==='cloud') mode='local';   // cloud not available → fall back
+      setStatus('local');
+      onChange(withLocalIds(local()));
     }
-    mode='local'; setStatus('local'); onChange(local());
   }
+  function setMode(m){ mode=m; localStorage.setItem(MODE_KEY, m); apply(); return getMode(); }
+  function getMode(){ return (mode==='cloud' && cloudReady) ? 'cloud' : 'local'; }
+  function cloudAvailable(){ return hasCloud(); }
+
   async function add(entry){
-    if(mode==='cloud' && col){
-      try{ await col.add({name:entry.name, ms:entry.ms, t:entry.t, createdAt:Date.now()}); return; }
-      catch(e){ console.warn('Cloud add failed, saving local:', e.message); }
+    var e = {name:entry.name, ms:entry.ms, t:entry.t, createdAt:Date.now()};
+    if(mode==='cloud' && ensureFirebase()){
+      try{ await col.add(e); return; }
+      catch(err){ console.warn('cloud add:', err.message); }
     }
-    const s=local(); s.push(entry); s.sort((a,b)=>a.ms-b.ms); saveLocal(s.slice(0,100)); onChange(s);
+    const s=local(); s.push(e); s.sort((a,b)=>a.ms-b.ms); saveLocal(s.slice(0,100));
+    onChange(withLocalIds(local()));
   }
-  function clear(){
-    if(mode==='cloud'){ alert('The live leaderboard is shared — clear it from the Firebase console, not the tablet.'); return; }
+  async function remove(id){
+    if(mode==='cloud' && cloudReady && !String(id).startsWith('l')){
+      try{ await col.doc(id).delete(); }catch(err){ alert('Delete failed: '+err.message); }
+      return;
+    }
+    const s=local(); const i=parseInt(String(id).slice(1),10);
+    if(!isNaN(i)){ const sorted=s.slice().sort((a,b)=>a.ms-b.ms); const target=sorted[i];
+      const idx=s.indexOf(target); if(idx>-1){ s.splice(idx,1); saveLocal(s); onChange(withLocalIds(s)); } }
+  }
+  async function clearAll(){
+    if(mode==='cloud' && cloudReady){
+      try{ const snap=await col.get(); const batch=firebase.firestore().batch();
+        snap.docs.forEach(d=>batch.delete(d.ref)); await batch.commit(); }
+      catch(err){ alert('Clear failed: '+err.message); }
+      return;
+    }
     saveLocal([]); onChange([]);
   }
   function setStatus(m){
     const el=document.getElementById('boardStatus'); if(!el) return;
     if(m==='cloud'){ el.textContent='Live'; el.className='status live'; }
+    else if(m==='cloud-err'){ el.textContent='Cloud error'; el.className='status local'; }
     else { el.textContent='Local'; el.className='status local'; }
   }
-  return { init, add, clear };
+  return { start, setMode, getMode, cloudAvailable, add, remove, clearAll };
 })();
 
 (function(){
   const TARGET = 10000;
-  const NOSE = 0.44;   // muzzle offset (× font size) — nudge if the nose lands over/short of the line
+  const NOSE = 0.50;   // muzzle offset (× font size) — nudge if the nose lands over/short of the line
   const track = document.getElementById('track');
   const horse = document.getElementById('horse');
   const dust  = document.getElementById('dust');
@@ -259,11 +312,15 @@ const LB = (function(){
   const saveScore = document.getElementById('saveScore');
   const easyMode = document.getElementById('easyMode');
   const boardList = document.getElementById('boardList');
-  const clearBoard = document.getElementById('clearBoard');
   const confetti = document.getElementById('confetti');
+  const modeSeg = document.getElementById('modeSeg');
+  const viewSeg = document.getElementById('viewSeg');
+  const adminBtn = document.getElementById('adminBtn');
+  const clearAllBtn = document.getElementById('clearAllBtn');
 
   let state = 'idle';
   let startT = 0, raf = 0, lastResult = null, cdTimer = null;
+  let adminMode = false, lastScores = [], view = 'today';
 
   function layout(){ const w = track.clientWidth; return { startX: 34, finishX: w - 42 }; }
   function placeHorse(progress){
@@ -356,13 +413,16 @@ const LB = (function(){
     hint.textContent='Added to the leaderboard! 🎉';
   }
   function renderBoard(scores){
-    const s = (scores||[]).slice().sort((a,b)=>a.ms-b.ms);
-    if(!s.length){ boardList.innerHTML='<li class="empty" style="background:none">No riders yet — be the first!</li>'; return; }
+    lastScores = (scores||[]).slice();
+    let s = lastScores.slice().sort((a,b)=>a.ms-b.ms);
+    if(view==='today'){ const t0=new Date(); t0.setHours(0,0,0,0); const start=t0.getTime(); s=s.filter(r=>(r.createdAt||0)>=start); }
+    if(!s.length){ boardList.innerHTML='<li class="empty" style="background:none">'+(view==='today'?'No times yet today — be the first! 🏇':'No riders yet — be the first!')+'</li>'; return; }
     boardList.innerHTML = s.slice(0,50).map((r,i)=>{
       const off = r.ms===0?'perfect':((r.ms)+' ms off');
+      const del = adminMode ? '<button class="del" data-id="'+escapeHtml(String(r.id))+'" title="Remove this time">✕</button>' : '<span></span>';
       return '<li class="'+(i===0?'top':'')+'"><span class="rank">'+(i+1)+'</span>'
         +'<span class="who">'+(i===0?'👑 ':'')+escapeHtml(r.name)+'</span>'
-        +'<span class="sc">'+Number(r.t).toFixed(3)+'s · '+off+'</span></li>';
+        +'<span class="sc">'+Number(r.t).toFixed(3)+'s · '+off+'</span>'+del+'</li>';
     }).join('');
   }
   function escapeHtml(x){ return String(x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -378,6 +438,7 @@ const LB = (function(){
       setTimeout(()=>el.remove(), 3600);
     }
   }
+
   function primaryAction(){ if(state==='idle'||state==='stopped') startCountdown(); else if(state==='running') stopRun(); }
   mainBtn.addEventListener('click', primaryAction);
   track.addEventListener('click', ()=>{ if(state==='running') stopRun(); });
@@ -386,10 +447,36 @@ const LB = (function(){
     if(e.code==='Enter' && nameRow.classList.contains('show')){ addScore(nameInput.value); }
   });
   saveScore.addEventListener('click', ()=>addScore(nameInput.value));
-  clearBoard.addEventListener('click', ()=>{ if(confirm('Clear the leaderboard?')) LB.clear(); });
+
+  // Delete individual times (admin only)
+  boardList.addEventListener('click', (e)=>{
+    const b = e.target.closest('.del'); if(!b || !adminMode) return;
+    if(confirm('Remove this time from the leaderboard?')) LB.remove(b.getAttribute('data-id'));
+  });
+
+  // Local / Cloud switch
+  function paintSeg(){ const m=LB.getMode(); modeSeg.querySelectorAll('button').forEach(x=>x.classList.toggle('on', x.dataset.mode===m)); }
+  modeSeg.addEventListener('click', (e)=>{
+    const b=e.target.closest('button'); if(!b) return;
+    if(b.dataset.mode==='cloud' && !LB.cloudAvailable()){
+      alert('Cloud board isn’t configured yet.\nAdd your Firebase details to config.js to enable it.'); return;
+    }
+    LB.setMode(b.dataset.mode); paintSeg();
+  });
+
+  // Admin unlock (PIN) → reveals delete buttons + Clear all
+  adminBtn.addEventListener('click', ()=>{
+    if(adminMode){ adminMode=false; adminBtn.textContent='🔒 Admin'; clearAllBtn.style.display='none'; renderBoard(lastScores); return; }
+    const pin = prompt('Enter admin PIN to manage the leaderboard:');
+    if(pin===null) return;
+    if(pin === String(window.APEIRON_DERBY_ADMIN_PIN||'')){ adminMode=true; adminBtn.textContent='🔓 Admin (on)'; clearAllBtn.style.display=''; renderBoard(lastScores); }
+    else alert('Wrong PIN.');
+  });
+  clearAllBtn.addEventListener('click', ()=>{ if(adminMode && confirm('Clear the ENTIRE leaderboard? This cannot be undone.')) LB.clearAll(); });
 
   positionFinish(); reset();
-  LB.init(renderBoard);   // wires the live/local leaderboard
+  LB.start(renderBoard);
+  paintSeg();
 })();
 </script>
 </body>

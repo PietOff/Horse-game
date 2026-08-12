@@ -228,7 +228,12 @@ const LB = (function(){
     if(!hasCloud()) return false;
     try{
       if(!firebase.apps || !firebase.apps.length) firebase.initializeApp(cfg);
-      col = firebase.firestore().collection('derbyScores');
+      var fs = firebase.firestore();
+      // Offline support: cache the board on the device and queue any scores made
+      // while offline, then auto-upload them to the cloud when internet returns
+      // (survives reloads via IndexedDB).
+      try{ fs.enablePersistence({synchronizeTabs:true}).catch(function(){}); }catch(e){}
+      col = fs.collection('derbyScores');
       cloudReady=true; return true;
     }catch(e){ console.warn('firebase init:', e.message); return false; }
   }
@@ -258,8 +263,10 @@ const LB = (function(){
   async function add(entry){
     var e = {name:entry.name, ms:entry.ms, t:entry.t, createdAt:Date.now()};
     if(mode==='cloud' && ensureFirebase()){
-      try{ await col.add(e); return; }
-      catch(err){ console.warn('cloud add:', err.message); }
+      // Fire-and-forget: when offline this is written to the local cache (the
+      // board updates instantly) and Firestore uploads it once back online.
+      col.add(e).catch(function(err){ console.warn('cloud add:', err.message); });
+      return;
     }
     const s=local(); s.push(e); s.sort((a,b)=>a.ms-b.ms); saveLocal(s.slice(0,100));
     onChange(withLocalIds(local()));

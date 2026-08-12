@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Apeiron Derby" />
+<meta name="theme-color" content="#222D3D" />
+<title>Apeiron Derby — Stop the Clock</title>
+<style>
+  :root{
+    --navy:#222D3D; --navy2:#2E3B4C; --olive:#5E6B49; --olive2:#7E8C6B;
+    --cream:#E3DAC9; --cream2:#E7EBDF; --paper:#F4EFE6; --rust:#C0492F; --gold:#C9A24B;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;margin:0;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:radial-gradient(120% 120% at 50% 0%, #2b3a4d 0%, var(--navy) 55%, #1a2430 100%);
+    color:var(--paper); min-height:100%; display:flex; flex-direction:column; align-items:center;
+    overflow-x:hidden; overflow-y:auto; user-select:none; overscroll-behavior:none;
+  }
+  .btn, .track, .toggle{touch-action:manipulation;}
+  .wrap{width:100%; max-width:1100px; padding:22px 22px 30px; display:flex; flex-direction:column; gap:18px; flex:1;}
+  header{display:flex; align-items:center; justify-content:space-between; gap:12px;}
+  .brand{display:flex; align-items:baseline; gap:12px; flex-wrap:wrap;}
+  .brand h1{font-family:Georgia,'Times New Roman',serif; font-size:clamp(24px,4vw,40px); margin:0; letter-spacing:.5px;}
+  .brand .sub{color:var(--olive2); font-size:clamp(12px,1.6vw,16px); font-weight:600;}
+  .target{background:rgba(255,255,255,.06); border:1px solid rgba(227,218,201,.25); border-radius:999px;
+    padding:8px 16px; font-weight:700; font-size:clamp(13px,1.8vw,17px); white-space:nowrap;}
+  .target b{color:var(--gold);}
+
+  .track-card{background:linear-gradient(180deg,#f7f3ea,#eee6d6); border-radius:22px; padding:0; overflow:hidden;
+    box-shadow:0 20px 50px rgba(0,0,0,.35); border:1px solid rgba(0,0,0,.08);}
+  .track{position:relative; height:clamp(200px,34vh,300px); overflow:hidden;
+    background:linear-gradient(180deg,#a9cfe9 0%, #cfe6f4 22%, #e7f2f6 25.5%, #b6cf86 26%, #8fae5b 48%, #6f9142 100%);}
+  .sun{position:absolute; top:16px; right:64px; width:44px; height:44px; border-radius:50%; z-index:1;
+    background:radial-gradient(circle at 40% 40%, #fff6c8, #ffd35e); box-shadow:0 0 34px rgba(255,211,94,.7);}
+  .hills{position:absolute; top:13%; left:0; right:0; height:15%; z-index:1; opacity:.85;
+    background:
+      radial-gradient(60% 150% at 18% 100%, #9db98d 0 60%, transparent 61%),
+      radial-gradient(72% 160% at 55% 100%, #8fae7f 0 60%, transparent 61%),
+      radial-gradient(60% 150% at 88% 100%, #a7c096 0 60%, transparent 61%);}
+  .crowd{position:absolute; top:20%; left:0; right:0; height:6%; z-index:1; opacity:.5;
+    background:repeating-linear-gradient(90deg,#3c4a5e 0 6px,#4a5a70 6px 12px,#5b3f4a 12px 18px,#6a5560 18px 24px);
+    border-bottom:3px solid rgba(255,255,255,.55);}
+  .ground{position:absolute; left:0; right:0; bottom:0; height:74%; z-index:1;
+    background-image:repeating-linear-gradient(90deg, rgba(255,255,255,.09) 0 44px, rgba(0,0,0,.05) 44px 88px);}
+  .track.running .ground{animation:scrollGround .45s linear infinite;}
+  @keyframes scrollGround{from{background-position:0 0}to{background-position:-88px 0}}
+  .rail{position:absolute; left:0; right:0; height:6px; background:#fff; box-shadow:0 0 0 2px rgba(0,0,0,.12);}
+  .rail.top{top:26%;} .rail.bottom{bottom:16px; height:8px; background:#f4ede0;}
+  .finish{position:absolute; top:26%; bottom:16px; width:26px;
+    background-image:
+      linear-gradient(45deg,#222 25%,transparent 25%,transparent 75%,#222 75%),
+      linear-gradient(45deg,#222 25%,#fff 25%,#fff 75%,#222 75%);
+    background-size:13px 13px; background-position:0 0,6.5px 6.5px; background-color:#fff;
+    border-left:3px solid var(--rust); border-right:3px solid var(--rust); z-index:3;}
+  .finish-flag{position:absolute; top:-2px; transform:translateX(-6px); font-size:22px; z-index:4;}
+  .horse{position:absolute; bottom:24px; z-index:5; transform:translateX(-50%) scaleX(-1);
+    font-size:clamp(54px,9.5vw,88px); line-height:1; will-change:left,transform;
+    filter:drop-shadow(0 8px 5px rgba(0,0,0,.3));}
+  .dust{position:absolute; bottom:22px; z-index:4; width:60px; height:34px; pointer-events:none; opacity:0;}
+  .dust span{position:absolute; bottom:0; border-radius:50%; background:radial-gradient(circle at 40% 40%, rgba(255,255,255,.9), rgba(210,196,168,.15));}
+  .dust .p1{width:16px;height:16px;left:2px;animation:puff 1s linear infinite;}
+  .dust .p2{width:22px;height:22px;left:16px;animation:puff 1.1s linear infinite .2s;}
+  .dust .p3{width:14px;height:14px;left:38px;animation:puff .9s linear infinite .4s;}
+  @keyframes puff{0%{transform:translate(0,0) scale(.5);opacity:.7}100%{transform:translate(-26px,-14px) scale(1.3);opacity:0}}
+  .startlogo{position:absolute; inset:0; z-index:7; display:flex; align-items:center; justify-content:center; pointer-events:none;}
+  .startlogo .panel{display:flex; align-items:center; gap:20px; padding:16px 28px;
+    background:rgba(247,243,234,.9); border:1px solid rgba(201,162,75,.55); border-radius:18px; box-shadow:0 14px 34px rgba(0,0,0,.2);}
+  .startlogo .emblem{width:clamp(58px,11vw,96px); height:auto; flex:none;}
+  .startlogo .wm-main{font-family:Georgia,'Times New Roman',serif; color:var(--navy); letter-spacing:.14em;
+    font-size:clamp(28px,5.6vw,60px); font-weight:600; line-height:1;}
+  .startlogo .wm-sub{letter-spacing:.26em; color:var(--olive); font-weight:700; margin-top:7px; font-size:clamp(8px,1.5vw,14px);}
+  .gate{position:absolute; left:14px; top:26%; bottom:16px; width:10px; background:linear-gradient(180deg,#8a8f97,#5c626b); border-radius:3px; z-index:2;}
+
+  .bigtime{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; z-index:6; pointer-events:none;}
+  .bigtime span{font-family:Georgia,serif; font-weight:700; color:var(--navy);
+    font-size:clamp(40px,12vw,120px); text-shadow:0 2px 0 rgba(255,255,255,.4);}
+
+  .controls{display:flex; flex-direction:column; align-items:center; gap:14px;}
+  .btn{border:none; cursor:pointer; font-weight:800; letter-spacing:.5px; border-radius:16px;
+    padding:22px 34px; font-size:clamp(20px,3.4vw,30px); transition:transform .06s ease, filter .2s;}
+  .btn:active{transform:translateY(2px) scale(.99);}
+  .btn.go{background:linear-gradient(180deg,var(--olive2),var(--olive)); color:#fff; box-shadow:0 10px 24px rgba(94,107,73,.45); min-width:min(560px,86vw);}
+  .btn.stop{background:linear-gradient(180deg,#d85a40,var(--rust)); color:#fff; box-shadow:0 10px 26px rgba(192,73,47,.5); min-width:min(560px,86vw);}
+  .btn.ghost{background:transparent; color:var(--cream); border:2px solid rgba(227,218,201,.4); padding:12px 20px; font-size:16px; border-radius:12px;}
+  .hint{color:var(--olive2); font-size:14px; font-weight:600; min-height:18px; text-align:center;}
+  .row{display:flex; gap:12px; align-items:center; flex-wrap:wrap; justify-content:center;}
+  .toggle{display:flex; align-items:center; gap:8px; color:var(--cream); font-size:14px; font-weight:600;}
+
+  .result{background:rgba(255,255,255,.06); border:1px solid rgba(227,218,201,.22); border-radius:18px; padding:16px 20px; text-align:center; display:none;}
+  .result.show{display:block; animation:pop .35s ease;}
+  @keyframes pop{from{transform:scale(.9);opacity:0}to{transform:scale(1);opacity:1}}
+  .result .t{font-family:Georgia,serif; font-size:clamp(30px,7vw,56px); font-weight:700;}
+  .result .t small{font-size:.42em; color:var(--olive2); font-weight:600;}
+  .result .band{font-size:clamp(18px,3vw,26px); font-weight:800; margin-top:2px;}
+  .result .delta{color:var(--cream); font-size:16px; margin-top:4px;}
+  .namerow{margin-top:12px; display:none; gap:8px; justify-content:center; flex-wrap:wrap;}
+  .namerow.show{display:flex;}
+  .namerow input{border-radius:10px; border:1px solid rgba(227,218,201,.4); background:rgba(255,255,255,.9);
+    color:var(--navy); font-size:16px; padding:10px 12px; width:min(220px,60vw); font-weight:600;}
+  .namerow button{border-radius:10px;border:none;background:var(--gold);color:#3a2f14;font-weight:800;padding:10px 16px;font-size:15px;cursor:pointer;}
+
+  .board{background:rgba(0,0,0,.18); border:1px solid rgba(227,218,201,.15); border-radius:16px; padding:14px 18px;}
+  .board h2{font-family:Georgia,serif; margin:0 0 8px; font-size:20px; color:var(--gold); display:flex; align-items:center; gap:8px;}
+  .board .status{font-family:-apple-system,sans-serif; font-size:11px; font-weight:700; letter-spacing:.08em; padding:2px 8px; border-radius:999px; text-transform:uppercase;}
+  .board .status.live{background:rgba(94,107,73,.35); color:#dfe6d4; border:1px solid rgba(126,140,107,.6);}
+  .board .status.local{background:rgba(0,0,0,.25); color:var(--olive2); border:1px solid rgba(227,218,201,.2);}
+  .board ol{margin:0; padding:0 6px 0 0; list-style:none; display:grid; gap:6px;
+    max-height:clamp(160px,32vh,320px); overflow-y:auto; scrollbar-width:thin; scrollbar-color:rgba(201,162,75,.6) transparent;}
+  .board ol::-webkit-scrollbar{width:8px;}
+  .board ol::-webkit-scrollbar-thumb{background:rgba(201,162,75,.6); border-radius:8px;}
+  .board ol::-webkit-scrollbar-track{background:transparent;}
+  .board li{display:grid; grid-template-columns:26px 1fr auto; align-items:center; gap:10px; font-size:16px;
+    padding:6px 10px; border-radius:10px; background:rgba(255,255,255,.04);}
+  .board li.top{background:linear-gradient(90deg,rgba(201,162,75,.28),rgba(201,162,75,.05)); border:1px solid rgba(201,162,75,.4);}
+  .board .rank{font-weight:800; color:var(--olive2); text-align:center;}
+  .board .who{font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .board .sc{font-variant-numeric:tabular-nums; font-weight:700; color:var(--cream);}
+  .empty{color:var(--olive2); font-size:14px;}
+  footer{color:rgba(227,218,201,.4); font-size:12px; text-align:center; padding-bottom:6px;}
+  .confetti{position:fixed; inset:0; pointer-events:none; z-index:50; overflow:hidden;}
+  .confetti i{position:absolute; top:-20px; width:10px; height:14px; border-radius:2px; animation:fall linear forwards;}
+  @keyframes fall{to{transform:translateY(110vh) rotate(720deg); opacity:.9;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <h1>Apeiron Derby</h1>
+      <span class="sub">Stop the clock — no peeking!</span>
+    </div>
+    <div class="target">Stop when the <b>nose</b> hits the line — at exactly <b>10.00s</b></div>
+  </header>
+
+  <div class="track-card">
+    <div class="track" id="track">
+      <div class="sun"></div>
+      <div class="hills"></div>
+      <div class="crowd"></div>
+      <div class="rail top"></div>
+      <div class="ground"></div>
+      <div class="gate"></div>
+      <div class="finish" id="finish"><span class="finish-flag">🏁</span></div>
+      <div class="dust" id="dust"><span class="p1"></span><span class="p2"></span><span class="p3"></span></div>
+      <div class="horse" id="horse">🏇</div>
+      <div class="rail bottom"></div>
+      <div class="bigtime" id="bigtime"><span id="bigtimeTxt"></span></div>
+      <div class="startlogo" id="startLogo"><div class="panel">
+        <svg class="emblem" viewBox="0 0 100 100" fill="none" stroke="#C9A24B" stroke-width="3" stroke-linejoin="round"><circle cx="50" cy="50" r="46"/><circle cx="50" cy="31" r="20"/><circle cx="50" cy="69" r="20"/><circle cx="31" cy="50" r="20"/><circle cx="69" cy="50" r="20"/><rect x="21.7" y="21.7" width="56.6" height="56.6" transform="rotate(45 50 50)"/></svg>
+        <div class="wordmark"><div class="wm-main">APEIRON</div><div class="wm-sub">MY EQUINE CARE, CONNECTED</div></div>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="btn go" id="mainBtn">START</button>
+    <div class="hint" id="hint">Press START, then STOP the moment the nose hits the line at 10 seconds. Spacebar works too.</div>
+    <div class="result" id="result">
+      <div class="t" id="resTime">—</div>
+      <div class="band" id="resBand"></div>
+      <div class="delta" id="resDelta"></div>
+      <div class="namerow" id="nameRow">
+        <input id="nameInput" maxlength="14" placeholder="Your name for the board" />
+        <button id="saveScore">Add to leaderboard</button>
+      </div>
+    </div>
+    <div class="row">
+      <label class="toggle"><input type="checkbox" id="easyMode" /> Easy mode (show live clock)</label>
+      <button class="btn ghost" id="clearBoard">Clear leaderboard</button>
+    </div>
+  </div>
+
+  <div class="board">
+    <h2>🏆 Today's Leaderboard <span class="status local" id="boardStatus">Local</span></h2>
+    <ol id="boardList"><li class="empty" style="background:none">No riders yet — be the first!</li></ol>
+  </div>
+
+  <footer>Apeiron Derby · closest to 10.000s wins · a bit of fun for the stand 🐎</footer>
+</div>
+<div class="confetti" id="confetti"></div>
+
+<!-- Firebase (compat) — only used if config.js has a real project. Safe to leave in even offline. -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="config.js"></script>
+
+<script>
+/* ------------------------------------------------------------------ *
+ * Leaderboard backend: shared live board via Firebase Firestore when
+ * config.js is filled in; otherwise falls back to this browser's
+ * localStorage so the game always works, even offline.
+ * ------------------------------------------------------------------ */
+const LB = (function(){
+  const KEY='apeiron_derby_scores_v1';
+  const cfg = window.APEIRON_DERBY_CONFIG || {};
+  let mode='local', col=null, onChange=function(){};
+  const local = ()=>{ try{ return JSON.parse(localStorage.getItem(KEY)||'[]'); }catch(e){ return []; } };
+  const saveLocal = (s)=>{ try{ localStorage.setItem(KEY, JSON.stringify(s)); }catch(e){} };
+
+  function init(cb){
+    onChange = cb;
+    const usable = cfg && cfg.apiKey && !String(cfg.apiKey).includes('PASTE') && window.firebase;
+    if(usable){
+      try{
+        firebase.initializeApp(cfg);
+        col = firebase.firestore().collection('derbyScores');
+        col.orderBy('ms','asc').limit(100).onSnapshot(
+          snap => { mode='cloud'; setStatus('cloud'); onChange(snap.docs.map(d=>d.data())); },
+          err  => { console.warn('Cloud board unavailable, using local:', err.message); mode='local'; setStatus('local'); onChange(local()); }
+        );
+        return;
+      }catch(e){ console.warn('Firebase init failed, using local:', e.message); }
+    }
+    mode='local'; setStatus('local'); onChange(local());
+  }
+  async function add(entry){
+    if(mode==='cloud' && col){
+      try{ await col.add({name:entry.name, ms:entry.ms, t:entry.t, createdAt:Date.now()}); return; }
+      catch(e){ console.warn('Cloud add failed, saving local:', e.message); }
+    }
+    const s=local(); s.push(entry); s.sort((a,b)=>a.ms-b.ms); saveLocal(s.slice(0,100)); onChange(s);
+  }
+  function clear(){
+    if(mode==='cloud'){ alert('The live leaderboard is shared — clear it from the Firebase console, not the tablet.'); return; }
+    saveLocal([]); onChange([]);
+  }
+  function setStatus(m){
+    const el=document.getElementById('boardStatus'); if(!el) return;
+    if(m==='cloud'){ el.textContent='Live'; el.className='status live'; }
+    else { el.textContent='Local'; el.className='status local'; }
+  }
+  return { init, add, clear };
+})();
+
+(function(){
+  const TARGET = 10000;
+  const NOSE = 0.44;   // muzzle offset (× font size) — nudge if the nose lands over/short of the line
+  const track = document.getElementById('track');
+  const horse = document.getElementById('horse');
+  const dust  = document.getElementById('dust');
+  const finish= document.getElementById('finish');
+  const bigtime = document.getElementById('bigtime');
+  const bigtimeTxt = document.getElementById('bigtimeTxt');
+  const startLogo = document.getElementById('startLogo');
+  const mainBtn = document.getElementById('mainBtn');
+  const hint = document.getElementById('hint');
+  const result = document.getElementById('result');
+  const resTime = document.getElementById('resTime');
+  const resBand = document.getElementById('resBand');
+  const resDelta = document.getElementById('resDelta');
+  const nameRow = document.getElementById('nameRow');
+  const nameInput = document.getElementById('nameInput');
+  const saveScore = document.getElementById('saveScore');
+  const easyMode = document.getElementById('easyMode');
+  const boardList = document.getElementById('boardList');
+  const clearBoard = document.getElementById('clearBoard');
+  const confetti = document.getElementById('confetti');
+
+  let state = 'idle';
+  let startT = 0, raf = 0, lastResult = null, cdTimer = null;
+
+  function layout(){ const w = track.clientWidth; return { startX: 34, finishX: w - 42 }; }
+  function placeHorse(progress){
+    const {startX, finishX} = layout();
+    const p = Math.min(progress, 1.18);
+    const lineX = finishX - 13;
+    const fs = parseFloat(getComputedStyle(horse).fontSize) || 74;
+    const noseOffset = fs*NOSE;
+    const noseX = startX + p*(lineX - startX);
+    horse.style.left = (noseX - noseOffset) + 'px';
+    const now = performance.now();
+    const bob  = state==='running' ? Math.sin(now/55)*5 : 0;
+    const tilt = state==='running' ? Math.sin(now/55)*3 : 0;
+    horse.style.transform = 'translateX(-50%) scaleX(-1) translateY('+bob+'px) rotate('+tilt+'deg)';
+    dust.style.left = (noseX - fs - 8) + 'px';
+    dust.style.opacity = state==='running' ? 1 : 0;
+  }
+  function positionFinish(){ const {finishX}=layout(); finish.style.left=(finishX-13)+'px'; }
+  window.addEventListener('resize', ()=>{ positionFinish(); if(state!=='running') placeHorse(state==='stopped'&&lastResult?Math.min(lastResult.elapsed/TARGET,1.18):0); });
+
+  function reset(){
+    state='idle'; cancelAnimationFrame(raf); if(cdTimer) clearInterval(cdTimer);
+    track.classList.remove('running');
+    startLogo.style.display='flex'; horse.style.opacity='0';
+    placeHorse(0);
+    bigtime.style.display='none'; bigtimeTxt.textContent='';
+    mainBtn.textContent='START'; mainBtn.className='btn go';
+    hint.textContent='Press START, then STOP the moment the nose hits the line at 10 seconds. Spacebar works too.';
+    result.classList.remove('show'); nameRow.classList.remove('show');
+  }
+  function startCountdown(){
+    result.classList.remove('show'); nameRow.classList.remove('show');
+    state='countdown'; let n=3;
+    startLogo.style.display='none'; horse.style.opacity='1';
+    bigtime.style.display='flex'; bigtimeTxt.textContent=n;
+    mainBtn.textContent='…'; mainBtn.className='btn go'; hint.textContent='Get set…'; placeHorse(0);
+    cdTimer=setInterval(()=>{
+      n--;
+      if(n>0){ bigtimeTxt.textContent=n; }
+      else if(n===0){ bigtimeTxt.textContent='GO!'; }
+      else { clearInterval(cdTimer); beginRun(); }
+    }, 700);
+  }
+  function beginRun(){
+    state='running'; startT=performance.now();
+    track.classList.add('running');
+    mainBtn.textContent='STOP!'; mainBtn.className='btn stop';
+    hint.textContent='Feel the pace… tap STOP on the line!';
+    loop();
+  }
+  function loop(){
+    const elapsed = performance.now()-startT;
+    placeHorse(elapsed/TARGET);
+    if(easyMode.checked){ bigtime.style.display='flex'; bigtimeTxt.textContent=(elapsed/1000).toFixed(2); }
+    else { bigtime.style.display='none'; }
+    raf=requestAnimationFrame(loop);
+  }
+  function stopRun(){
+    cancelAnimationFrame(raf);
+    track.classList.remove('running');
+    const elapsed = performance.now()-startT;
+    state='stopped';
+    placeHorse(elapsed/TARGET);
+    const delta = elapsed - TARGET, ad = Math.abs(delta);
+    lastResult = {elapsed, delta};
+    bigtime.style.display='none';
+    mainBtn.textContent='RACE AGAIN'; mainBtn.className='btn go';
+    hint.textContent='';
+    resTime.innerHTML = (elapsed/1000).toFixed(3) + '<small> s</small>';
+    const band = ratingFor(ad);
+    resBand.textContent = band.label; resBand.style.color = band.color;
+    resDelta.textContent = (delta>=0?'+':'−') + (ad/1000).toFixed(3) + ' s from 10.000  ·  ' + Math.round(ad) + ' ms off';
+    result.classList.add('show');
+    nameInput.value=''; nameRow.classList.add('show'); nameInput.focus();
+    if(ad<=120){ burst(); }
+  }
+  function ratingFor(ad){
+    if(ad<=10)  return {label:'🏆 PHOTO FINISH! Perfect ride', color:'#C9A24B'};
+    if(ad<=60)  return {label:'🔥 Blazing! Nailed it', color:'#C9A24B'};
+    if(ad<=120) return {label:'🌟 Brilliant', color:'#E7EBDF'};
+    if(ad<=250) return {label:'👏 Great ride', color:'#E7EBDF'};
+    if(ad<=500) return {label:'🙂 So close', color:'#E3DAC9'};
+    if(ad<=1000)return {label:'🐎 Not bad', color:'#E3DAC9'};
+    return {label:'😅 Give it another gallop', color:'#E3DAC9'};
+  }
+  function addScore(name){
+    if(!lastResult) return;
+    LB.add({ name:(name||'Anon').trim().slice(0,14)||'Anon', ms:Math.round(Math.abs(lastResult.delta)), t:+(lastResult.elapsed/1000).toFixed(3) });
+    nameRow.classList.remove('show');
+    hint.textContent='Added to the leaderboard! 🎉';
+  }
+  function renderBoard(scores){
+    const s = (scores||[]).slice().sort((a,b)=>a.ms-b.ms);
+    if(!s.length){ boardList.innerHTML='<li class="empty" style="background:none">No riders yet — be the first!</li>'; return; }
+    boardList.innerHTML = s.slice(0,50).map((r,i)=>{
+      const off = r.ms===0?'perfect':((r.ms)+' ms off');
+      return '<li class="'+(i===0?'top':'')+'"><span class="rank">'+(i+1)+'</span>'
+        +'<span class="who">'+(i===0?'👑 ':'')+escapeHtml(r.name)+'</span>'
+        +'<span class="sc">'+Number(r.t).toFixed(3)+'s · '+off+'</span></li>';
+    }).join('');
+  }
+  function escapeHtml(x){ return String(x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function burst(){
+    const colors=['#C9A24B','#5E6B49','#C0492F','#E3DAC9','#7E8C6B'];
+    for(let i=0;i<80;i++){
+      const el=document.createElement('i');
+      el.style.left=Math.random()*100+'vw';
+      el.style.background=colors[i%colors.length];
+      el.style.animationDuration=(1.6+Math.random()*1.6)+'s';
+      el.style.animationDelay=(Math.random()*0.3)+'s';
+      confetti.appendChild(el);
+      setTimeout(()=>el.remove(), 3600);
+    }
+  }
+  function primaryAction(){ if(state==='idle'||state==='stopped') startCountdown(); else if(state==='running') stopRun(); }
+  mainBtn.addEventListener('click', primaryAction);
+  track.addEventListener('click', ()=>{ if(state==='running') stopRun(); });
+  document.addEventListener('keydown', e=>{
+    if(e.code==='Space'){ e.preventDefault(); primaryAction(); }
+    if(e.code==='Enter' && nameRow.classList.contains('show')){ addScore(nameInput.value); }
+  });
+  saveScore.addEventListener('click', ()=>addScore(nameInput.value));
+  clearBoard.addEventListener('click', ()=>{ if(confirm('Clear the leaderboard?')) LB.clear(); });
+
+  positionFinish(); reset();
+  LB.init(renderBoard);   // wires the live/local leaderboard
+})();
+</script>
+</body>
+</html>

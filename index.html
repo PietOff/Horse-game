@@ -180,7 +180,7 @@
   </div>
 
   <div class="board">
-    <h2>🏆 Today's Leaderboard <span class="status local" id="boardStatus">Local</span></h2>
+    <h2>🏆 <span id="boardTitle">Today's</span> Leaderboard <span class="status local" id="boardStatus">Local</span></h2>
     <div class="boardctl">
       <div class="seg" id="viewSeg">
         <button data-view="today" class="on">Today</button>
@@ -464,6 +464,16 @@ const LB = (function(){
     LB.setMode(b.dataset.mode); paintSeg();
   });
 
+  // Today / All-time switch
+  function paintView(){
+    viewSeg.querySelectorAll('button').forEach(x=>x.classList.toggle('on', x.dataset.view===view));
+    var lbl=document.getElementById('boardTitle'); if(lbl) lbl.textContent = (view==='all') ? 'All-Time' : "Today's";
+  }
+  viewSeg.addEventListener('click', (e)=>{
+    const b=e.target.closest('button'); if(!b) return;
+    view=b.dataset.view; paintView(); renderBoard(lastScores);
+  });
+
   // Admin unlock (PIN) → reveals delete buttons + Clear all
   adminBtn.addEventListener('click', ()=>{
     if(adminMode){ adminMode=false; adminBtn.textContent='🔒 Admin'; clearAllBtn.style.display='none'; renderBoard(lastScores); return; }
@@ -477,6 +487,7 @@ const LB = (function(){
   positionFinish(); reset();
   LB.start(renderBoard);
   paintSeg();
+  paintView();
 })();
 </script>
 </body>

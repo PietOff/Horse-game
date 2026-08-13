@@ -152,6 +152,18 @@
   .confetti{position:fixed; inset:0; pointer-events:none; z-index:50; overflow:hidden;}
   .confetti i{position:absolute; top:-20px; width:10px; height:14px; border-radius:2px; animation:fall linear forwards;}
   @keyframes fall{to{transform:translateY(110vh) rotate(720deg); opacity:.9;}}
+  /* Phones: use the full width, stack + centre the header, never overflow sideways */
+  @media (max-width:640px){
+    .wrap{padding:10px 8px 24px; gap:12px;}
+    header{flex-wrap:wrap; justify-content:center; gap:8px;}
+    .brand{width:100%; justify-content:center; text-align:center;}
+    .brand h1{font-size:26px;}
+    .target{white-space:normal; text-align:center; width:100%; font-size:13px;}
+    .track-card{border-radius:16px;}
+    .btn{padding:18px 18px;}
+    .board{padding:12px 12px;}
+    .boardctl{gap:8px;}
+  }
 </style>
 </head>
 <body>

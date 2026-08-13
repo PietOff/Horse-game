@@ -81,8 +81,8 @@
   .track.twop #horse2{display:block; bottom:10px; font-size:clamp(40px,7vw,64px);}
   .track.twop .horse{bottom:78px; font-size:clamp(40px,7vw,64px);}
   .seg.players{align-self:center;}
-  .duelbtns{display:none; gap:12px; width:min(560px,86vw);}
-  .duelbtns .btn{flex:1; min-width:0; padding:20px 8px; font-size:clamp(16px,3vw,26px);}
+  .duelbtns{display:none; gap:12px; width:min(560px,92vw); margin:0 auto; justify-content:center;}
+  .duelbtns .btn{flex:1 1 0; min-width:0 !important; width:auto; padding:20px 8px; font-size:clamp(15px,2.6vw,24px);}
   .btn.stop.p1{background:linear-gradient(180deg,#8f9e76,#5E6B49); box-shadow:0 10px 24px rgba(94,107,73,.45);}
   .btn.stop.p2{background:linear-gradient(180deg,#5aa6c8,#3f7d99); box-shadow:0 10px 24px rgba(63,125,153,.45);}
   .result.duel .band{font-family:Georgia,serif;}
@@ -193,7 +193,9 @@
     <button class="btn go" id="mainBtn">START</button>
     <div class="duelbtns" id="duelBtns"><button class="btn stop p1" id="p1Btn">P1 STOP</button><button class="btn stop p2" id="p2Btn">P2 STOP</button></div>
     <div class="hint" id="hint">Press START, then STOP the moment the nose hits the line at 10 seconds. Spacebar works too.</div>
-    <div class="result duel" id="duelResult"><div class="band" id="duelWin">—</div><div class="delta" id="duelP1"></div><div class="delta" id="duelP2"></div></div>
+    <div class="result duel" id="duelResult"><div class="band" id="duelWin">—</div><div class="delta" id="duelP1"></div><div class="delta" id="duelP2"></div>
+      <div class="namerow" id="duelNameRow"><input id="duelName" maxlength="14" placeholder="Winner's name" /><button id="duelSave">Add winner to board</button></div>
+    </div>
     <div class="result" id="result">
       <div class="t" id="resTime">—</div>
       <div class="band" id="resBand"></div>
@@ -390,6 +392,9 @@ const LB = (function(){
   const duelWin = document.getElementById('duelWin');
   const duelP1 = document.getElementById('duelP1');
   const duelP2 = document.getElementById('duelP2');
+  const duelNameRow = document.getElementById('duelNameRow');
+  const duelName = document.getElementById('duelName');
+  const duelSave = document.getElementById('duelSave');
   const modeSeg = document.getElementById('modeSeg');
   const viewSeg = document.getElementById('viewSeg');
   const adminBtn = document.getElementById('adminBtn');
@@ -399,7 +404,7 @@ const LB = (function(){
   let state = 'idle';
   let startT = 0, raf = 0, lastResult = null, cdTimer = null;
   let adminMode = false, lastScores = [], view = 'today';
-  let players = 1, p1s = {stopped:false, elapsed:0}, p2s = {stopped:false, elapsed:0}, raf2 = 0, autoCap = null;
+  let players = 1, p1s = {stopped:false, elapsed:0}, p2s = {stopped:false, elapsed:0}, raf2 = 0, autoCap = null, duelBest = null;
 
   // ---- Sound (WebAudio, synthesized — no files, works offline) ----
   let AC=null, muted=(localStorage.getItem('apeiron_derby_muted')==='1'), hoofTimer=null;
@@ -423,7 +428,7 @@ const LB = (function(){
 
   // ---- Head-to-head (2 players) ----
   function start2P(){
-    duelResult.classList.remove('show'); result.classList.remove('show'); nameRow.classList.remove('show');
+    duelResult.classList.remove('show'); duelNameRow.classList.remove('show'); result.classList.remove('show'); nameRow.classList.remove('show');
     state='countdown2'; let n=3;
     startLogo.style.display='none'; track.classList.add('twop');
     horse.style.opacity='1'; horse2.style.opacity='1';
@@ -473,6 +478,9 @@ const LB = (function(){
     duelP2.textContent='🔵 P2  '+(p2s.elapsed/1000).toFixed(3)+'s  ·  '+Math.round(d2)+' ms off';
     duelWin.textContent = winner===0?'🤝 Dead heat!':('🏆 Player '+winner+' wins!');
     duelWin.style.color = winner===2?'#5aa6c8':(winner===1?'#C9A24B':'#E7EBDF');
+    // Offer to save the winning (best) time to the shared leaderboard
+    duelBest = (d1<=d2) ? {elapsed:p1s.elapsed, ms:Math.round(d1)} : {elapsed:p2s.elapsed, ms:Math.round(d2)};
+    duelName.value=''; duelNameRow.classList.add('show');
     duelResult.classList.add('show');
     if(Math.min(d1,d2)<=200){ photoFinish(); } else { burst(); cheer(); }
   }
@@ -480,7 +488,7 @@ const LB = (function(){
     if(players===2){
       state='idle'; cancelAnimationFrame(raf); cancelAnimationFrame(raf2); if(cdTimer) clearInterval(cdTimer); if(autoCap){ clearTimeout(autoCap); autoCap=null; }
       track.classList.remove('running','photo'); track.classList.add('twop'); photoBanner.classList.remove('show'); stopHoofs();
-      duelResult.classList.remove('show'); duelBtns.style.display='none'; mainBtn.style.display='';
+      duelResult.classList.remove('show'); duelNameRow.classList.remove('show'); duelBtns.style.display='none'; mainBtn.style.display='';
       result.classList.remove('show'); nameRow.classList.remove('show');
       startLogo.style.display='flex'; bigtime.style.display='none'; bigtimeTxt.textContent='';
       horse.style.opacity='0'; horse2.style.opacity='0'; posHorse(horse,dust,0,true); posHorse(horse2,dust2,0,true);
@@ -628,11 +636,17 @@ const LB = (function(){
   p1Btn.addEventListener('click', ()=>stopPlayer(1));
   p2Btn.addEventListener('click', ()=>stopPlayer(2));
   playerSeg.addEventListener('click', (e)=>{ var b=e.target.closest('button'); if(!b) return; setPlayers(+b.dataset.p); });
+  duelSave.addEventListener('click', ()=>{
+    if(!duelBest) return;
+    LB.add({ name:(duelName.value||'Anon').trim().slice(0,14)||'Anon', ms:duelBest.ms, t:+(duelBest.elapsed/1000).toFixed(3) });
+    duelNameRow.classList.remove('show'); hint.textContent='Winning time added to the board! 🎉';
+  });
   document.addEventListener('keydown', e=>{
     if(state==='running2'){
       if(e.key==='a'||e.key==='A'||e.code==='ArrowLeft'){ e.preventDefault(); stopPlayer(1); return; }
       if(e.key==='l'||e.key==='L'||e.code==='ArrowRight'){ e.preventDefault(); stopPlayer(2); return; }
     }
+    if(e.code==='Enter' && duelNameRow.classList.contains('show')){ e.preventDefault(); duelSave.click(); return; }
     if(e.code==='Space'){ e.preventDefault(); primaryAction(); }
     if(e.code==='Enter' && nameRow.classList.contains('show')){ addScore(nameInput.value); }
   });

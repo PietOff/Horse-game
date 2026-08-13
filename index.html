@@ -77,6 +77,15 @@
     border-radius:999px; font-size:clamp(14px,2.4vw,22px); display:none; border:1px solid rgba(201,162,75,.7);}
   .photo-banner.show{display:block; animation:pop .3s ease;}
   .soundtoggle{background:transparent; border:1px solid rgba(227,218,201,.4); color:var(--cream); border-radius:10px; padding:8px 12px; font-size:14px; font-weight:700; cursor:pointer;}
+  .horse2{position:absolute; bottom:12px; z-index:5; transform:translateX(-50%) scaleX(-1); font-size:clamp(54px,9.5vw,88px); line-height:1; will-change:left,transform; filter:drop-shadow(0 8px 5px rgba(0,0,0,.3)) hue-rotate(150deg) saturate(1.35); display:none;}
+  .track.twop #horse2{display:block; bottom:10px; font-size:clamp(40px,7vw,64px);}
+  .track.twop .horse{bottom:78px; font-size:clamp(40px,7vw,64px);}
+  .seg.players{align-self:center;}
+  .duelbtns{display:none; gap:12px; width:min(560px,86vw);}
+  .duelbtns .btn{flex:1; min-width:0; padding:20px 8px; font-size:clamp(16px,3vw,26px);}
+  .btn.stop.p1{background:linear-gradient(180deg,#8f9e76,#5E6B49); box-shadow:0 10px 24px rgba(94,107,73,.45);}
+  .btn.stop.p2{background:linear-gradient(180deg,#5aa6c8,#3f7d99); box-shadow:0 10px 24px rgba(63,125,153,.45);}
+  .result.duel .band{font-family:Georgia,serif;}
   .startlogo{position:absolute; inset:0; z-index:7; display:flex; align-items:center; justify-content:center; pointer-events:none;}
   .startlogo .panel{display:flex; align-items:center; gap:20px; padding:16px 28px;
     background:rgba(247,243,234,.9); border:1px solid rgba(201,162,75,.55); border-radius:18px; box-shadow:0 14px 34px rgba(0,0,0,.2);}
@@ -166,6 +175,8 @@
       <div class="finish" id="finish"><span class="finish-flag">🏁</span></div>
       <div class="dust" id="dust"><span class="p1"></span><span class="p2"></span><span class="p3"></span></div>
       <div class="horse" id="horse">🏇</div>
+      <div class="dust" id="dust2"><span class="p1"></span><span class="p2"></span><span class="p3"></span></div>
+      <div class="horse horse2" id="horse2">🏇</div>
       <div class="rail bottom"></div>
       <div class="bigtime" id="bigtime"><span id="bigtimeTxt"></span></div>
       <div class="flash" id="flash"></div>
@@ -178,8 +189,11 @@
   </div>
 
   <div class="controls">
+    <div class="seg players" id="playerSeg"><button data-p="1" class="on">1 Player</button><button data-p="2">2 Players</button></div>
     <button class="btn go" id="mainBtn">START</button>
+    <div class="duelbtns" id="duelBtns"><button class="btn stop p1" id="p1Btn">P1 STOP</button><button class="btn stop p2" id="p2Btn">P2 STOP</button></div>
     <div class="hint" id="hint">Press START, then STOP the moment the nose hits the line at 10 seconds. Spacebar works too.</div>
+    <div class="result duel" id="duelResult"><div class="band" id="duelWin">—</div><div class="delta" id="duelP1"></div><div class="delta" id="duelP2"></div></div>
     <div class="result" id="result">
       <div class="t" id="resTime">—</div>
       <div class="band" id="resBand"></div>
@@ -366,6 +380,16 @@ const LB = (function(){
   const photoBanner = document.getElementById('photoBanner');
   const soundToggle = document.getElementById('soundToggle');
   const resPos = document.getElementById('resPos');
+  const horse2 = document.getElementById('horse2');
+  const dust2 = document.getElementById('dust2');
+  const playerSeg = document.getElementById('playerSeg');
+  const duelBtns = document.getElementById('duelBtns');
+  const p1Btn = document.getElementById('p1Btn');
+  const p2Btn = document.getElementById('p2Btn');
+  const duelResult = document.getElementById('duelResult');
+  const duelWin = document.getElementById('duelWin');
+  const duelP1 = document.getElementById('duelP1');
+  const duelP2 = document.getElementById('duelP2');
   const modeSeg = document.getElementById('modeSeg');
   const viewSeg = document.getElementById('viewSeg');
   const adminBtn = document.getElementById('adminBtn');
@@ -375,6 +399,7 @@ const LB = (function(){
   let state = 'idle';
   let startT = 0, raf = 0, lastResult = null, cdTimer = null;
   let adminMode = false, lastScores = [], view = 'today';
+  let players = 1, p1s = {stopped:false, elapsed:0}, p2s = {stopped:false, elapsed:0}, raf2 = 0, autoCap = null;
 
   // ---- Sound (WebAudio, synthesized — no files, works offline) ----
   let AC=null, muted=(localStorage.getItem('apeiron_derby_muted')==='1'), hoofTimer=null;
@@ -396,22 +421,96 @@ const LB = (function(){
     setTimeout(function(){ track.classList.remove('photo'); photoBanner.classList.remove('show'); }, 1900);
   }
 
+  // ---- Head-to-head (2 players) ----
+  function start2P(){
+    duelResult.classList.remove('show'); result.classList.remove('show'); nameRow.classList.remove('show');
+    state='countdown2'; let n=3;
+    startLogo.style.display='none'; track.classList.add('twop');
+    horse.style.opacity='1'; horse2.style.opacity='1';
+    p1s={stopped:false,elapsed:0}; p2s={stopped:false,elapsed:0};
+    posHorse(horse,dust,0,true); posHorse(horse2,dust2,0,true);
+    duelBtns.style.display='none'; mainBtn.style.display='';
+    bigtime.style.display='flex'; bigtimeTxt.textContent=n; ac(); beep(660,.12,'sine',.18);
+    mainBtn.textContent='…'; mainBtn.className='btn go'; hint.textContent='Get set — P1 top lane, P2 bottom lane!';
+    cdTimer=setInterval(()=>{ n--;
+      if(n>0){ bigtimeTxt.textContent=n; beep(660,.12,'sine',.18); }
+      else if(n===0){ bigtimeTxt.textContent='GO!'; beep(990,.22,'square',.22); }
+      else { clearInterval(cdTimer); beginRun2P(); }
+    },700);
+  }
+  function beginRun2P(){
+    state='running2'; startT=performance.now(); track.classList.add('running'); startHoofs();
+    bigtime.style.display='none'; mainBtn.style.display='none';
+    duelBtns.style.display='flex'; p1Btn.disabled=false; p2Btn.disabled=false; p1Btn.style.opacity=1; p2Btn.style.opacity=1;
+    hint.textContent='P1 = left button / A key · P2 = right button / L key';
+    loop2P();
+    autoCap=setTimeout(function(){ if(!p1s.stopped) stopPlayer(1); if(!p2s.stopped) stopPlayer(2); }, 13000);
+  }
+  function loop2P(){
+    const elapsed=performance.now()-startT;
+    if(!p1s.stopped) posHorse(horse,dust,elapsed/TARGET);
+    if(!p2s.stopped) posHorse(horse2,dust2,elapsed/TARGET);
+    if(easyMode.checked){ bigtime.style.display='flex'; bigtimeTxt.textContent=(elapsed/1000).toFixed(2); } else { bigtime.style.display='none'; }
+    if(p1s.stopped && p2s.stopped) return;
+    raf2=requestAnimationFrame(loop2P);
+  }
+  function stopPlayer(n){
+    if(state!=='running2') return;
+    var pl=n===1?p1s:p2s, el=n===1?horse:horse2, dEl=n===1?dust:dust2, btn=n===1?p1Btn:p2Btn;
+    if(pl.stopped) return;
+    pl.stopped=true; pl.elapsed=performance.now()-startT;
+    posHorse(el,dEl,pl.elapsed/TARGET,true);
+    btn.disabled=true; btn.style.opacity=.5;
+    beep(n===1?740:520,.14,'triangle',.22);
+    if(p1s.stopped && p2s.stopped){ cancelAnimationFrame(raf2); if(autoCap){ clearTimeout(autoCap); autoCap=null; } finishDuel(); }
+  }
+  function finishDuel(){
+    state='stopped2'; track.classList.remove('running'); stopHoofs(); finishBell();
+    duelBtns.style.display='none'; mainBtn.style.display=''; mainBtn.textContent='RACE AGAIN'; mainBtn.className='btn go'; hint.textContent='';
+    var d1=Math.abs(p1s.elapsed-TARGET), d2=Math.abs(p2s.elapsed-TARGET);
+    var winner = d1===d2?0:(d1<d2?1:2);
+    duelP1.textContent='🟢 P1  '+(p1s.elapsed/1000).toFixed(3)+'s  ·  '+Math.round(d1)+' ms off';
+    duelP2.textContent='🔵 P2  '+(p2s.elapsed/1000).toFixed(3)+'s  ·  '+Math.round(d2)+' ms off';
+    duelWin.textContent = winner===0?'🤝 Dead heat!':('🏆 Player '+winner+' wins!');
+    duelWin.style.color = winner===2?'#5aa6c8':(winner===1?'#C9A24B':'#E7EBDF');
+    duelResult.classList.add('show');
+    if(Math.min(d1,d2)<=200){ photoFinish(); } else { burst(); cheer(); }
+  }
+  function resetMode(){
+    if(players===2){
+      state='idle'; cancelAnimationFrame(raf); cancelAnimationFrame(raf2); if(cdTimer) clearInterval(cdTimer); if(autoCap){ clearTimeout(autoCap); autoCap=null; }
+      track.classList.remove('running','photo'); track.classList.add('twop'); photoBanner.classList.remove('show'); stopHoofs();
+      duelResult.classList.remove('show'); duelBtns.style.display='none'; mainBtn.style.display='';
+      result.classList.remove('show'); nameRow.classList.remove('show');
+      startLogo.style.display='flex'; bigtime.style.display='none'; bigtimeTxt.textContent='';
+      horse.style.opacity='0'; horse2.style.opacity='0'; posHorse(horse,dust,0,true); posHorse(horse2,dust2,0,true);
+      mainBtn.textContent='START · 2P'; mainBtn.className='btn go';
+      hint.textContent='Head-to-head — closest to 10.000 wins. P1 top/left/A, P2 bottom/right/L.';
+    } else {
+      track.classList.remove('twop'); horse2.style.opacity='0';
+      duelResult.classList.remove('show'); duelBtns.style.display='none'; mainBtn.style.display='';
+      reset();
+    }
+  }
+  function setPlayers(p){ players=p; playerSeg.querySelectorAll('button').forEach(function(b){ b.classList.toggle('on',(+b.dataset.p)===players); }); resetMode(); }
+
   function layout(){ const w = track.clientWidth; return { startX: 34, finishX: w - 42 }; }
-  function placeHorse(progress){
+  function posHorse(el, dEl, progress, still){
     const {startX, finishX} = layout();
     const p = Math.min(progress, 1.18);
     const lineX = finishX - 13;
-    const fs = parseFloat(getComputedStyle(horse).fontSize) || 74;
+    const fs = parseFloat(getComputedStyle(el).fontSize) || 74;
     const noseOffset = fs*NOSE;
     const noseX = startX + p*(lineX - startX);
-    horse.style.left = (noseX - noseOffset) + 'px';
+    el.style.left = (noseX - noseOffset) + 'px';
     const now = performance.now();
-    const bob  = state==='running' ? Math.sin(now/55)*5 : 0;
-    const tilt = state==='running' ? Math.sin(now/55)*3 : 0;
-    horse.style.transform = 'translateX(-50%) scaleX(-1) translateY('+bob+'px) rotate('+tilt+'deg)';
-    dust.style.left = (noseX - fs - 8) + 'px';
-    dust.style.opacity = state==='running' ? 1 : 0;
+    const moving = !still && (state==='running' || state==='running2');
+    const bob  = moving ? Math.sin(now/55)*5 : 0;
+    const tilt = moving ? Math.sin(now/55)*3 : 0;
+    el.style.transform = 'translateX(-50%) scaleX(-1) translateY('+bob+'px) rotate('+tilt+'deg)';
+    if(dEl){ dEl.style.left = (noseX - fs - 8) + 'px'; dEl.style.opacity = moving ? 1 : 0; }
   }
+  function placeHorse(progress){ posHorse(horse, dust, progress); }
   function positionFinish(){ const {finishX}=layout(); finish.style.left=(finishX-13)+'px'; }
   window.addEventListener('resize', ()=>{ positionFinish(); if(state!=='running') placeHorse(state==='stopped'&&lastResult?Math.min(lastResult.elapsed/TARGET,1.18):0); });
 
@@ -517,10 +616,23 @@ const LB = (function(){
     }
   }
 
-  function primaryAction(){ if(state==='idle'||state==='stopped') startCountdown(); else if(state==='running') stopRun(); }
+  function primaryAction(){
+    if(players===2){ if(state==='idle'||state==='stopped2') start2P(); return; }
+    if(state==='idle'||state==='stopped') startCountdown(); else if(state==='running') stopRun();
+  }
   mainBtn.addEventListener('click', primaryAction);
-  track.addEventListener('click', ()=>{ if(state==='running') stopRun(); });
+  track.addEventListener('click', (e)=>{
+    if(state==='running'){ stopRun(); return; }
+    if(state==='running2'){ var r=track.getBoundingClientRect(); if((e.clientX-r.left) < r.width/2) stopPlayer(1); else stopPlayer(2); }
+  });
+  p1Btn.addEventListener('click', ()=>stopPlayer(1));
+  p2Btn.addEventListener('click', ()=>stopPlayer(2));
+  playerSeg.addEventListener('click', (e)=>{ var b=e.target.closest('button'); if(!b) return; setPlayers(+b.dataset.p); });
   document.addEventListener('keydown', e=>{
+    if(state==='running2'){
+      if(e.key==='a'||e.key==='A'||e.code==='ArrowLeft'){ e.preventDefault(); stopPlayer(1); return; }
+      if(e.key==='l'||e.key==='L'||e.code==='ArrowRight'){ e.preventDefault(); stopPlayer(2); return; }
+    }
     if(e.code==='Space'){ e.preventDefault(); primaryAction(); }
     if(e.code==='Enter' && nameRow.classList.contains('show')){ addScore(nameInput.value); }
   });
@@ -579,7 +691,7 @@ const LB = (function(){
   soundToggle.addEventListener('click', ()=>{ muted=!muted; localStorage.setItem('apeiron_derby_muted', muted?'1':'0'); if(muted) stopHoofs(); else ac(); paintSound(); });
   paintSound();
 
-  positionFinish(); reset();
+  positionFinish(); resetMode();
   LB.start(renderBoard);
   paintSeg();
   paintView();

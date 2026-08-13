@@ -513,7 +513,7 @@ const LB = (function(){
     if(adminMode){ adminMode=false; adminBtn.textContent='🔒 Admin'; clearAllBtn.style.display='none'; uploadBtn.style.display='none'; renderBoard(lastScores); return; }
     const pin = prompt('Enter admin PIN to manage the leaderboard:');
     if(pin===null) return;
-    if(pin === String(window.APEIRON_DERBY_ADMIN_PIN||'')){ adminMode=true; adminBtn.textContent='🔓 Admin (on)'; clearAllBtn.style.display=''; uploadBtn.style.display=''; renderBoard(lastScores); }
+    if(pin === String(window.APEIRON_DERBY_ADMIN_PIN||'')){ adminMode=true; adminBtn.textContent='🔓 Admin (on)'; clearAllBtn.style.display='inline-block'; uploadBtn.style.display='inline-block'; renderBoard(lastScores); }
     else alert('Wrong PIN.');
   });
   clearAllBtn.addEventListener('click', ()=>{ if(adminMode && confirm('Clear the ENTIRE leaderboard? This cannot be undone.')) LB.clearAll(); });

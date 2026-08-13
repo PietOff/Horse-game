@@ -115,6 +115,7 @@
   .board-actions{display:flex; gap:8px; align-items:center;}
   .admin-link{background:transparent; border:1px solid rgba(227,218,201,.25); color:var(--cream); border-radius:8px; padding:7px 12px; font-size:12px; font-weight:700; cursor:pointer;}
   .clearall{display:none; background:rgba(192,73,47,.15); color:#e8a08f; border:1px solid rgba(192,73,47,.5); border-radius:8px; padding:7px 12px; font-size:12px; font-weight:700; cursor:pointer;}
+  .uploadbtn{display:none; background:rgba(94,107,73,.25); color:#dfe6d4; border:1px solid rgba(126,140,107,.6); border-radius:8px; padding:7px 12px; font-size:12px; font-weight:700; cursor:pointer;}
   .board ol{margin:0; padding:0 6px 0 0; list-style:none; display:grid; gap:6px;
     max-height:clamp(160px,32vh,320px); overflow-y:auto; scrollbar-width:thin; scrollbar-color:rgba(201,162,75,.6) transparent;}
   .board ol::-webkit-scrollbar{width:8px;}
@@ -191,6 +192,7 @@
           <button data-mode="local" class="on">Local</button>
           <button data-mode="cloud">Cloud</button>
         </div>
+        <button class="uploadbtn" id="uploadBtn">⬆ Local→Cloud</button>
         <button class="clearall" id="clearAllBtn">Clear all</button>
         <button class="admin-link" id="adminBtn" title="Admin">🔒</button>
       </div>
@@ -295,7 +297,31 @@ const LB = (function(){
     else if(m==='cloud-err'){ el.textContent='Cloud error'; el.className='status local'; }
     else { el.textContent='Local'; el.className='status local'; }
   }
-  return { start, setMode, getMode, cloudAvailable, add, remove, clearAll };
+  function localCount(){ return local().length; }
+  function clearLocal(){ saveLocal([]); if(getMode()!=='cloud') onChange(withLocalIds([])); }
+  async function uploadLocalToCloud(){
+    if(!hasCloud()) return {ok:false, reason:'cloud not configured'};
+    if(!ensureFirebase()) return {ok:false, reason:'init failed'};
+    var items = local();
+    if(!items.length) return {ok:true, count:0};
+    try{
+      var db = firebase.firestore();
+      for(var i=0;i<items.length;i+=400){
+        var batch=db.batch();
+        items.slice(i,i+400).forEach(function(r){
+          batch.set(col.doc(), {
+            name: String(r.name||'Anon').slice(0,20),
+            ms: Math.max(0, Math.round(Number(r.ms)||0)),
+            t: Number(r.t)||0,
+            createdAt: Number(r.createdAt)||Date.now()
+          });
+        });
+        await batch.commit();
+      }
+      return {ok:true, count:items.length};
+    }catch(err){ return {ok:false, reason:err.message}; }
+  }
+  return { start, setMode, getMode, cloudAvailable, add, remove, clearAll, uploadLocalToCloud, localCount, clearLocal };
 })();
 
 (function(){
@@ -324,6 +350,7 @@ const LB = (function(){
   const viewSeg = document.getElementById('viewSeg');
   const adminBtn = document.getElementById('adminBtn');
   const clearAllBtn = document.getElementById('clearAllBtn');
+  const uploadBtn = document.getElementById('uploadBtn');
 
   let state = 'idle';
   let startT = 0, raf = 0, lastResult = null, cdTimer = null;
@@ -483,13 +510,27 @@ const LB = (function(){
 
   // Admin unlock (PIN) → reveals delete buttons + Clear all
   adminBtn.addEventListener('click', ()=>{
-    if(adminMode){ adminMode=false; adminBtn.textContent='🔒 Admin'; clearAllBtn.style.display='none'; renderBoard(lastScores); return; }
+    if(adminMode){ adminMode=false; adminBtn.textContent='🔒 Admin'; clearAllBtn.style.display='none'; uploadBtn.style.display='none'; renderBoard(lastScores); return; }
     const pin = prompt('Enter admin PIN to manage the leaderboard:');
     if(pin===null) return;
-    if(pin === String(window.APEIRON_DERBY_ADMIN_PIN||'')){ adminMode=true; adminBtn.textContent='🔓 Admin (on)'; clearAllBtn.style.display=''; renderBoard(lastScores); }
+    if(pin === String(window.APEIRON_DERBY_ADMIN_PIN||'')){ adminMode=true; adminBtn.textContent='🔓 Admin (on)'; clearAllBtn.style.display=''; uploadBtn.style.display=''; renderBoard(lastScores); }
     else alert('Wrong PIN.');
   });
   clearAllBtn.addEventListener('click', ()=>{ if(adminMode && confirm('Clear the ENTIRE leaderboard? This cannot be undone.')) LB.clearAll(); });
+  uploadBtn.addEventListener('click', async ()=>{
+    if(!adminMode) return;
+    if(!LB.cloudAvailable()){ alert('Cloud isn’t configured, so there’s nowhere to upload to.'); return; }
+    const n = LB.localCount();
+    if(!n){ alert('No local times on this tablet to upload.'); return; }
+    if(!confirm('Upload '+n+' local time'+(n===1?'':'s')+' from this tablet to the shared Cloud board?')) return;
+    uploadBtn.disabled=true; uploadBtn.textContent='Uploading…';
+    const r = await LB.uploadLocalToCloud();
+    uploadBtn.disabled=false; uploadBtn.textContent='⬆ Local→Cloud';
+    if(r && r.ok){
+      alert('Uploaded '+r.count+' time'+(r.count===1?'':'s')+' to the Cloud board. 🎉');
+      if(confirm('Clear the local copy on this tablet now, so they don’t get uploaded again?')) LB.clearLocal();
+    } else { alert('Upload failed'+(r&&r.reason?': '+r.reason:'')+'. Check the connection and try again.'); }
+  });
 
   positionFinish(); reset();
   LB.start(renderBoard);

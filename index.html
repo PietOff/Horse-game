@@ -82,7 +82,7 @@
   .track.twop .horse{bottom:78px; font-size:clamp(40px,7vw,64px);}
   .seg.players{align-self:center;}
   .duelbtns{display:none; gap:12px; width:min(560px,92vw); margin:0 auto; justify-content:center;}
-  .duelbtns .btn{flex:1 1 0; min-width:0 !important; width:auto; padding:20px 8px; font-size:clamp(15px,2.6vw,24px);}
+  .duelbtns .btn{flex:1 1 0; min-width:0 !important; width:auto; padding:20px 8px; font-size:clamp(15px,2.6vw,24px); touch-action:none; user-select:none;}
   .btn.stop.p1{background:linear-gradient(180deg,#8f9e76,#5E6B49); box-shadow:0 10px 24px rgba(94,107,73,.45);}
   .btn.stop.p2{background:linear-gradient(180deg,#5aa6c8,#3f7d99); box-shadow:0 10px 24px rgba(63,125,153,.45);}
   .result.duel .band{font-family:Georgia,serif;}
@@ -645,8 +645,16 @@ const LB = (function(){
     if(state==='running'){ stopRun(); return; }
     if(state==='running2'){ var r=track.getBoundingClientRect(); if((e.clientX-r.left) < r.width/2) stopPlayer(1); else stopPlayer(2); }
   });
-  p1Btn.addEventListener('click', ()=>stopPlayer(1));
-  p2Btn.addEventListener('click', ()=>stopPlayer(2));
+  // Multi-touch: each finger on the track (2P) stops its own side, simultaneously
+  track.addEventListener('touchstart', (e)=>{
+    if(state!=='running2') return;
+    e.preventDefault();
+    var r=track.getBoundingClientRect();
+    for(var i=0;i<e.changedTouches.length;i++){ var x=e.changedTouches[i].clientX-r.left; if(x < r.width/2) stopPlayer(1); else stopPlayer(2); }
+  }, {passive:false});
+  // Stop buttons respond to pointerdown so both players can press at the exact same time
+  function bindStop(btn, n){ var h=function(e){ e.preventDefault(); stopPlayer(n); }; btn.addEventListener('pointerdown', h); btn.addEventListener('click', h); }
+  bindStop(p1Btn, 1); bindStop(p2Btn, 2);
   playerSeg.addEventListener('click', (e)=>{ var b=e.target.closest('button'); if(!b) return; setPlayers(+b.dataset.p); });
   duelSave.addEventListener('click', ()=>{
     if(!duelBest) return;

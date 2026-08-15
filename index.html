@@ -222,6 +222,7 @@
     <div class="row">
       <label class="toggle"><input type="checkbox" id="easyMode" /> Easy mode (show live clock)</label>
       <button class="soundtoggle" id="soundToggle">🔊 Sound</button>
+      <button class="soundtoggle" id="musicToggle">🎪 Music</button>
     </div>
   </div>
 
@@ -394,6 +395,7 @@ const LB = (function(){
   const flashEl = document.getElementById('flash');
   const photoBanner = document.getElementById('photoBanner');
   const soundToggle = document.getElementById('soundToggle');
+  const musicToggle = document.getElementById('musicToggle');
   const resPos = document.getElementById('resPos');
   const horse2 = document.getElementById('horse2');
   const dust2 = document.getElementById('dust2');
@@ -427,8 +429,34 @@ const LB = (function(){
   function startHoofs(){ stopHoofs(); if(muted) return; if(!ac()) return; hoofTimer=setInterval(function(){ var c=ac(); if(!c) return; var t=c.currentTime; [0,0.10,0.20,0.34].forEach(function(o){ hoof(t+o); }); }, 520); }
   function stopHoofs(){ if(hoofTimer){ clearInterval(hoofTimer); hoofTimer=null; } }
   function finishBell(){ beep(880,0.5,'triangle',0.28); beep(1320,0.6,'triangle',0.16); }
-  function cheer(){ var c=ac(); if(!c||muted) return; var t=c.currentTime; for(var i=0;i<3;i++){ var n=c.createBufferSource(); var buf=c.createBuffer(1,Math.floor(c.sampleRate*1.5),c.sampleRate); var ch=buf.getChannelData(0); for(var j=0;j<ch.length;j++) ch[j]=(Math.random()*2-1); n.buffer=buf; var f=c.createBiquadFilter(); f.type='bandpass'; f.frequency.value=700+i*400; f.Q.value=0.6; var g=c.createGain(); var st=t+i*0.05; g.gain.setValueAtTime(0.0001,st); g.gain.linearRampToValueAtTime(0.11,st+0.25); g.gain.exponentialRampToValueAtTime(0.0001,st+1.4); n.connect(f).connect(g).connect(c.destination); n.start(st); n.stop(st+1.5); } }
+  function cheer(){ var c=ac(); if(!c||muted) return; var t=c.currentTime; for(var i=0;i<3;i++){ var n=c.createBufferSource(); var buf=c.createBuffer(1,Math.floor(c.sampleRate*1.5),c.sampleRate); var ch=buf.getChannelData(0); for(var j=0;j<ch.length;j++) ch[j]=(Math.random()*2-1); n.buffer=buf; var f=c.createBiquadFilter(); f.type='bandpass'; f.frequency.value=700+i*400; f.Q.value=0.6; var g=c.createGain(); var st=t+i*0.05; g.gain.setValueAtTime(0.0001,st); g.gain.linearRampToValueAtTime(0.22,st+0.22); g.gain.exponentialRampToValueAtTime(0.0001,st+1.5); n.connect(f).connect(g).connect(c.destination); n.start(st); n.stop(st+1.5); } }
   function paintSound(){ soundToggle.textContent = muted ? '🔇 Sound' : '🔊 Sound'; }
+
+  // ---- Silly fairground music (plays only while the horse is running) ----
+  var musicPref = (localStorage.getItem('apeiron_derby_music')!=='0');
+  var musicTimer = null, musicStep = 0;
+  var LEAD = [523,523,392,523, 659,523,392,0, 440,440,349,440, 523,392,330,0];
+  var BASS = [131,196,131,196, 165,196,131,196, 175,220,175,220, 131,196,131,0];
+  function startMusic(){
+    if(musicTimer || muted || !musicPref) return;
+    var c=ac(); if(!c) return; musicStep=0;
+    musicTimer=setInterval(function(){
+      var c2=ac(); if(!c2) return; var t=c2.currentTime, s=musicStep%16;
+      var lf=LEAD[s]; if(lf){ var o=c2.createOscillator(),g=c2.createGain(); o.type='square'; o.frequency.value=lf; g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(0.06,t+0.01); g.gain.exponentialRampToValueAtTime(0.0001,t+0.16); o.connect(g).connect(c2.destination); o.start(t); o.stop(t+0.18); }
+      var bf=BASS[s]; if(bf){ var o2=c2.createOscillator(),g2=c2.createGain(); o2.type='triangle'; o2.frequency.value=bf; g2.gain.setValueAtTime(0.0001,t); g2.gain.linearRampToValueAtTime(0.07,t+0.01); g2.gain.exponentialRampToValueAtTime(0.0001,t+0.18); o2.connect(g2).connect(c2.destination); o2.start(t); o2.stop(t+0.2); }
+      musicStep++;
+    }, 175);
+  }
+  function stopMusic(){ if(musicTimer){ clearInterval(musicTimer); musicTimer=null; } }
+  function paintMusic(){ if(musicToggle) musicToggle.textContent = musicPref ? '🎪 Music' : '🔇 Music'; }
+
+  // ---- Big triumphant fanfare on stop ----
+  function fanfare(){
+    var c=ac(); if(!c||muted) return; var t=c.currentTime;
+    [523,659,784,1047].forEach(function(f,i){ var o=c.createOscillator(),g=c.createGain(); o.type='square'; o.frequency.value=f; var st=t+i*0.08; g.gain.setValueAtTime(0.0001,st); g.gain.linearRampToValueAtTime(0.30,st+0.02); g.gain.exponentialRampToValueAtTime(0.0001,st+0.5); o.connect(g).connect(c.destination); o.start(st); o.stop(st+0.55); });
+    [523,659,784].forEach(function(f){ var o=c.createOscillator(),g=c.createGain(); o.type='triangle'; o.frequency.value=f; var st=t+0.34; g.gain.setValueAtTime(0.0001,st); g.gain.linearRampToValueAtTime(0.22,st+0.03); g.gain.exponentialRampToValueAtTime(0.0001,st+0.95); o.connect(g).connect(c.destination); o.start(st); o.stop(st+1); });
+  }
+  function celebrate(){ stopMusic(); finishBell(); cheer(); fanfare(); burst(); }
 
   // ---- Photo finish (within 200ms of 10.000s) ----
   function photoFinish(){
@@ -457,7 +485,7 @@ const LB = (function(){
     },700);
   }
   function beginRun2P(){
-    state='running2'; startT=performance.now(); track.classList.add('running'); startHoofs();
+    state='running2'; startT=performance.now(); track.classList.add('running'); startHoofs(); startMusic();
     bigtime.style.display='none'; mainBtn.style.display='none';
     duelBtns.style.display='flex'; p1Btn.disabled=false; p2Btn.disabled=false; p1Btn.style.opacity=1; p2Btn.style.opacity=1;
     hint.textContent='P1 = left button / A key · P2 = right button / L key';
@@ -483,7 +511,7 @@ const LB = (function(){
     if(p1s.stopped && p2s.stopped){ cancelAnimationFrame(raf2); if(autoCap){ clearTimeout(autoCap); autoCap=null; } finishDuel(); }
   }
   function finishDuel(){
-    state='stopped2'; track.classList.remove('running'); stopHoofs(); finishBell();
+    state='stopped2'; track.classList.remove('running'); stopHoofs(); celebrate();
     duelBtns.style.display='none'; mainBtn.style.display=''; mainBtn.textContent='RACE AGAIN'; mainBtn.className='btn go'; hint.textContent='';
     var d1=Math.abs(p1s.elapsed-TARGET), d2=Math.abs(p2s.elapsed-TARGET);
     var winner = d1===d2?0:(d1<d2?1:2);
@@ -495,12 +523,12 @@ const LB = (function(){
     duelBest = (d1<=d2) ? {elapsed:p1s.elapsed, ms:Math.round(d1)} : {elapsed:p2s.elapsed, ms:Math.round(d2)};
     duelName.value=''; duelNameRow.classList.add('show');
     duelResult.classList.add('show');
-    if(Math.min(d1,d2)<=200){ photoFinish(); } else { burst(); cheer(); }
+    if(Math.min(d1,d2)<=200){ photoFinish(); }
   }
   function resetMode(){
     if(players===2){
       state='idle'; cancelAnimationFrame(raf); cancelAnimationFrame(raf2); if(cdTimer) clearInterval(cdTimer); if(autoCap){ clearTimeout(autoCap); autoCap=null; }
-      track.classList.remove('running','photo'); track.classList.add('twop'); photoBanner.classList.remove('show'); stopHoofs();
+      track.classList.remove('running','photo'); track.classList.add('twop'); photoBanner.classList.remove('show'); stopHoofs(); stopMusic();
       duelResult.classList.remove('show'); duelNameRow.classList.remove('show'); duelBtns.style.display='none'; mainBtn.style.display='';
       result.classList.remove('show'); nameRow.classList.remove('show');
       startLogo.style.display='flex'; bigtime.style.display='none'; bigtimeTxt.textContent='';
@@ -537,7 +565,7 @@ const LB = (function(){
 
   function reset(){
     state='idle'; cancelAnimationFrame(raf); if(cdTimer) clearInterval(cdTimer);
-    track.classList.remove('running'); track.classList.remove('photo'); photoBanner.classList.remove('show'); stopHoofs();
+    track.classList.remove('running'); track.classList.remove('photo'); photoBanner.classList.remove('show'); stopHoofs(); stopMusic();
     startLogo.style.display='flex'; horse.style.opacity='0';
     placeHorse(0);
     bigtime.style.display='none'; bigtimeTxt.textContent='';
@@ -560,7 +588,7 @@ const LB = (function(){
   }
   function beginRun(){
     state='running'; startT=performance.now();
-    track.classList.add('running'); startHoofs();
+    track.classList.add('running'); startHoofs(); startMusic();
     mainBtn.textContent='STOP!'; mainBtn.className='btn stop';
     hint.textContent='Feel the pace… tap STOP on the line!';
     loop();
@@ -594,7 +622,7 @@ const LB = (function(){
     resPos.textContent = (rank===1 ? '👑 New #1 — top of the board!' : 'You’d rank #' + rank + ' of ' + total);
     result.classList.add('show');
     nameInput.value=''; nameRow.classList.add('show'); nameInput.focus();
-    stopHoofs(); finishBell();
+    stopHoofs(); celebrate();
     if(ad<=200){ photoFinish(); }
   }
   function ratingFor(ad){
@@ -731,8 +759,9 @@ const LB = (function(){
     } else { alert('Upload failed'+(r&&r.reason?': '+r.reason:'')+'. Check the connection and try again.'); }
   });
 
-  soundToggle.addEventListener('click', ()=>{ muted=!muted; localStorage.setItem('apeiron_derby_muted', muted?'1':'0'); if(muted) stopHoofs(); else ac(); paintSound(); });
-  paintSound();
+  soundToggle.addEventListener('click', ()=>{ muted=!muted; localStorage.setItem('apeiron_derby_muted', muted?'1':'0'); if(muted){ stopHoofs(); stopMusic(); } else ac(); paintSound(); });
+  musicToggle.addEventListener('click', ()=>{ musicPref=!musicPref; localStorage.setItem('apeiron_derby_music', musicPref?'1':'0'); if(!musicPref) stopMusic(); else if(state==='running'||state==='running2') startMusic(); paintMusic(); });
+  paintSound(); paintMusic();
 
   positionFinish(); resetMode();
   LB.start(renderBoard);
